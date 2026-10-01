@@ -73,6 +73,10 @@ The game can play system link games on a local network and on the internet:
 - Linux, Windows and Android machines can play in the same game.
 - An invite link lets a machine join a game on the internet. No server of
   this project is necessary.
+- A party (`network.party`) lets machines that share a name find each
+  other over the internet without an invite. The default party is a public
+  lobby, so a player finds it in the system link list with no setup; a
+  machine can also run an always-on lobby (`network.party_lobby`).
 - The netcode is new. Each machine moves its own player at once,
   and the host makes the decisions for the game. Refer to
   [port/linux/NETCODE.md](port/linux/NETCODE.md).

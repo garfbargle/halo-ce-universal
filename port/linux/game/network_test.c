@@ -13,6 +13,12 @@ Automated system link sessions for testing the netcode without the menus
 - "join" searches for games and joins the first it finds, as picking it in
   the system link list does.
 
+The same host path drives an always-on public lobby, without the menus:
+network.party_lobby names a map (as "bloodgulch" or "bloodgulch:slayer"),
+and the game hosts it, waits network.party_lobby_start seconds, plays, and
+returns to the lobby for the next game, listing it in network.party (with
+network.party_advertise) so players who set that party find it.
+
 Once the game runs, every second each machine logs where every player's
 unit is, so the machines' views of the game can be compared.
 
@@ -81,6 +87,9 @@ enum
 static struct
 {
 	boolean checked;
+	/* network.party_lobby's: an always-on lobby, not a test (no test
+	logging or scripted play, and every game starts the next) */
+	boolean production;
 	short mode;
 	char map_name[64];
 	char variant_name[64];
@@ -156,13 +165,45 @@ static void network_test_read_settings(
 	{
 		network_test.mode = _network_test_join;
 	}
-	network_test.start_delay = (real)config_real("debug.network_test_start");
-	network_test.kill_interval = (real)config_real("debug.network_test_kill");
-	network_test.shoot_interval = (real)config_real("debug.network_test_shoot");
-	network_test.vehicle_time = (real)config_real("debug.network_test_vehicle");
-	network_test.pickup_time = (real)config_real("debug.network_test_pickup");
-	network_test.score_to_win = (long)config_integer("debug.network_test_score");
-	if (network_test.mode != _network_test_off)
+	else
+	{
+		/* network.party_lobby: an always-on public lobby, hosted without
+		the menus (the party lists it; p2p.c takes party_lobby as
+		advertising it) */
+		char const *lobby = config_string("network.party_lobby");
+
+		if (*lobby)
+		{
+			char *colon;
+
+			network_test.mode = _network_test_host;
+			network_test.production = TRUE;
+			snprintf(network_test.map_name, sizeof(network_test.map_name), "%s", lobby);
+			snprintf(network_test.variant_name, sizeof(network_test.variant_name), "slayer");
+			colon = strchr(network_test.map_name, ':');
+			if (colon)
+			{
+				*colon = 0;
+				snprintf(network_test.variant_name, sizeof(network_test.variant_name), "%s", colon + 1);
+			}
+		}
+	}
+	if (network_test.production)
+	{
+		network_test.start_delay = (real)config_real("network.party_lobby_start");
+	}
+	else
+	{
+		network_test.start_delay = (real)config_real("debug.network_test_start");
+		network_test.kill_interval = (real)config_real("debug.network_test_kill");
+		network_test.shoot_interval = (real)config_real("debug.network_test_shoot");
+		network_test.vehicle_time = (real)config_real("debug.network_test_vehicle");
+		network_test.pickup_time = (real)config_real("debug.network_test_pickup");
+		network_test.score_to_win = (long)config_integer("debug.network_test_score");
+	}
+	if (network_test.production)
+		platform_log("party lobby: hosting %s", network_test.map_name);
+	else if (network_test.mode != _network_test_off)
 		platform_log("network test: %s", setting);
 }
 
@@ -727,7 +768,8 @@ void network_test_update(
 	game's time starts over) */
 	if (game_in_progress() && game_time_get() < network_test.logged_time)
 		network_test.logged_time = 0;
-	if (game_in_progress() && !main_menu_loaded && game_time_get() - network_test.logged_time >= TICKS_PER_SECOND)
+	if (!network_test.production && game_in_progress() && !main_menu_loaded &&
+		game_time_get() - network_test.logged_time >= TICKS_PER_SECOND)
 	{
 		network_test.logged_time = game_time_get();
 		network_test_log_players();
@@ -860,7 +902,8 @@ void network_test_update(
 		if (game_engine_showing_postgame() && global_network_game_server_get())
 		{
 			network_test.postgame_seconds += seconds;
-			if (network_test.postgame_seconds >= 3.0f && network_test_variant(network_test.variant_index + 1, NULL, 0))
+			if (network_test.postgame_seconds >= 3.0f &&
+				(network_test.production || network_test_variant(network_test.variant_index + 1, NULL, 0)))
 			{
 				network_test.postgame_seconds = 0.0f;
 				network_game_server_reset_to_pregame(global_network_game_server_get());
@@ -885,9 +928,11 @@ void network_test_update(
 	{
 		network_test.game_over = FALSE;
 		network_test.postgame_seconds = 0.0f;
-		if (network_test_variant(network_test.variant_index + 1, NULL, 0))
+		if (network_test.production || network_test_variant(network_test.variant_index + 1, NULL, 0))
 		{
-			network_test.variant_index++;
+			/* (an always-on lobby plays the same game again) */
+			if (!network_test.production)
+				network_test.variant_index++;
 			network_test.started = FALSE;
 			network_test.map_set = FALSE;
 			network_test.setup_seconds = 0.0f;
@@ -896,7 +941,10 @@ void network_test_update(
 			holds the countdown) */
 			if (global_network_game_server_get())
 				network_game_server_pause_countdown(global_network_game_server_get(), FALSE);
-			platform_log("network test: the next game");
+			if (network_test.production)
+				platform_log("party lobby: the next game");
+			else
+				platform_log("network test: the next game");
 		}
 	}
 
@@ -947,7 +995,7 @@ void network_test_update(
 			}
 			if (!network_test.player_added && network_test.setup_seconds >= 2.0f && global_network_game_client_get())
 				network_test.player_added = network_game_client_add_player(global_network_game_client_get(), 0);
-			if (network_test.setup_seconds >= network_test.start_delay)
+			if (network_test.map_set && network_test.setup_seconds >= network_test.start_delay)
 			{
 				network_test.started = TRUE;
 				network_game_client_request_immediate_start();

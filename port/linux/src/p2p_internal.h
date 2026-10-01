@@ -87,6 +87,9 @@ int p2p_peer_reoffered(const unsigned char *identifier, const unsigned char *sec
 /* an invite that arrived on the p2p thread (from Discord, or another copy
 of the game) */
 void p2p_invite_received(const char *text);
+/* a party's host was advertised (p2p_signal.c): reach it if this machine
+is not already finding or playing it; the p2p thread's, under p2p_lock */
+void p2p_party_host(const unsigned char *host_hash, const unsigned char *token);
 
 /* ---------- p2p_signal.c: signalling through public MQTT brokers */
 
@@ -107,6 +110,14 @@ void p2p_signal_join(const unsigned char *host_hash, const unsigned char *token)
 void p2p_signal_stop_joining(void);
 /* whether any broker is connected */
 int p2p_signal_connected(void);
+/* a party (network.party) whose machines find each other without an invite
+(p2p_signal.c): the name alone derives the topic and the key the hosts'
+invites are advertised with; NULL or empty turns it off. Called once, from
+p2p_initialize (it starts signalling, so the brokers connect at once) */
+void p2p_signal_party(const char *name);
+/* hosting: advertise this invite to the party; both NULL stops (it is
+published at once and again every few seconds while a party is on) */
+void p2p_signal_advertise_party(const unsigned char *host_hash, const unsigned char *token);
 
 /* ---------- p2p_crypto.c */
 
