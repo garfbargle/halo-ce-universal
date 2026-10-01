@@ -165,6 +165,7 @@ the setting for one start of the game. It has priority over the file.
 | `network.address` | `""` | `HALO_NET_ADDRESS` | The IPv4 address of this machine for system link. Refer to "Play on one computer". |
 | `network.broadcast` | `""` | `HALO_NET_BROADCAST` | IPv4 addresses, with commas between them, that get the broadcasts of the game. Empty: 255.255.255.255. |
 | `network.online` | `true` | `HALO_NET_ONLINE` | `true`: internet play. `false`: system link on the local network only. |
+| `network.party` | `""` | `HALO_NET_PARTY` | A party: machines with the same name find each other over the internet and connect without an invite. Refer to "Parties". |
 | `network.join_from_clipboard` | `true` | `HALO_NET_JOIN_FROM_CLIPBOARD` | `true`: when the game comes to the front, it joins the game of an invite link on the clipboard. |
 | `network.tunnel_port` | `0` | `HALO_NET_TUNNEL_PORT` | The UDP port for internet play. `0`: the game selects a port. Refer to "Internet play". |
 | `network.allow_upnp` | `true` | `HALO_NET_ALLOW_UPNP` | `true`: internet play can ask the router to forward its port (UPnP). `false`: the game does not ask. Refer to "Internet play". |
@@ -349,6 +350,26 @@ To join a game, do one of these steps:
 When the machines connect, the game of the host shows in Multiplayer,
 System Link. Join the game as on a local network. System link on a local
 network does not need an invite.
+
+### Parties
+
+A party is a name that machines share instead of an invite link
+(`network.party`, `HALO_NET_PARTY`). Machines in the same party find each
+other through the signalling brokers and connect without anyone opening or
+copying a link: the machine that hosts a system link game shows in the
+system link list of the others, who join it as on a local network.
+
+1. Every machine sets the same name, for example
+   `network.party = "halo-night"`.
+2. One player hosts a system link game (Multiplayer, System Link, and then
+   the host button).
+3. The game of the host appears in the system link list of the others.
+   Join it.
+
+Anyone who knows the name can join, so choose a name that is hard to guess
+for a party of your own. The brokers see only a hash of the name, and the
+invite of the host is sealed with a key from it. A party does not stop
+invite links from working; a machine can use both.
 
 ### Security
 

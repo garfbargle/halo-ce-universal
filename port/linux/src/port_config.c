@@ -129,6 +129,12 @@ static const struct config_setting config_settings[] =
 		"clipboard) that lets whoever has it join over the internet; opening a\n"
 		"link (or copying one before switching to the game) joins. Only people\n"
 		"with the invite can join. Off keeps system link to the local network." },
+	{ "network.party", _config_string, "\"\"", "HALO_NET_PARTY", _environment_value, _platform_all,
+		"A party: machines whose network.party is the same find each other\n"
+		"over the internet and connect automatically, so a game hosted on one\n"
+		"shows in the system link list of the others, with no invite to pass\n"
+		"around. Anyone who knows the name can join, so keep it secret for a\n"
+		"party of your own. Empty: off; invite links only." },
 	{ "network.join_from_clipboard", _config_boolean, "true", "HALO_NET_JOIN_FROM_CLIPBOARD", _environment_value,
 		_platform_all,
 		"Join the game of an invite link found on the clipboard when the game\n"
