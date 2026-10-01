@@ -323,6 +323,9 @@ static struct
 	int game_player_maximum;
 	int reported_player_count;
 	int reported_player_maximum;
+	/* a game this machine hosts is listed in its party (network.party_
+	advertise, or network.party_lobby) */
+	int party_advertise;
 
 	/* joining: until the host is reached, or JOIN_TIMEOUT */
 	int join_requested;
@@ -2410,6 +2413,7 @@ static void update_hosting(void)
 		p2p.stun_started = 1;
 		p2p_signal_start();
 		p2p_signal_host(p2p.token);
+		if (p2p.party_advertise)
 		{
 			/* a party finds this game without an invite (network.party) */
 			unsigned char hash[P2P_KEY_HASH_SIZE];
@@ -2946,8 +2950,11 @@ void p2p_initialize(unsigned long local_address)
 		return;
 	/* a party finds hosts without an invite (network.party); it starts
 	signalling, so its brokers connect even before a game is hosted or
-	joined */
-	p2p_signal_party(config_string("network.party"));
+	joined. An automated test keeps to itself, so it joins no party. */
+	p2p.party_advertise = config_boolean("network.party_advertise") ||
+		*config_string("network.party_lobby");
+	if (!*config_string("debug.network_test"))
+		p2p_signal_party(config_string("network.party"));
 	if (tunnel_port < 0 || tunnel_port > 65535)
 	{
 		platform_log("Internet play: network.tunnel_port %ld is not a port (0 to 65535); the game selects one",
